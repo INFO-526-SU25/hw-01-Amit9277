@@ -1,6 +1,6 @@
 ---
 title: "HW 01"
-author: "INSERT YOUR NAME HERE"
+author: "Amit Chawla"
 format: 
   html:
     embed-resources: true
@@ -16,23 +16,625 @@ if (!require("pacman"))
 # use this line for installing/loading
 # pacman::p_load() 
 
-devtools::install_github("tidyverse/dsbox")
+# devtools::install_github("tidyverse/dsbox")
+
+library(tidyverse)
+library(here)
+library(countdown)
+library(scico) # for color palette 
+library(DT) # for interactive table
+library(readr)
+library(ggmap)
+library(ggplot2)
+library(ggrepel)
+library(gridExtra)
+library(dplyr)
+library(pander)
+library(lubridate)
+library(hms)
+library(openintro)
+
+# set theme for ggplot2
+ggplot2::theme_set(ggplot2::theme_minimal(base_size = 14))
+
+# set width of code output
+options(width = 65)
+
+# set figure parameters for knitr
+knitr::opts_chunk$set(
+  fig.width = 7,        # 7" width
+  fig.asp = 0.618,      # the golden ratio
+  fig.retina = 3,       # dpi multiplier for displaying HTML output on retina
+  fig.align = "center", # center align figures
+  dpi = 300             # higher dpi, sharper image
+)
 ```
 
 ## 1 - Road traffic accidents in Edinburgh
 
-```{r label-me-1}
+```{r Load DataSet Q1}
+accidents <- read_csv("data/accidents.csv")
+```
 
+```{r Checking DataSet Q1}
+# head(accidents)
+# summary(accidents)
+```
+
+```{r Question 1 Plot}
+accidents |>
+  mutate(
+    time = as_hms(time),
+    day_type = if_else(day_of_week %in% c("Saturday", "Sunday"), "Weekend", "Weekday")
+  ) |>
+  ggplot(aes(x = time, fill = severity)) +
+  geom_density(alpha = 0.6, adjust = 1.2) +
+  facet_wrap(~day_type, ncol = 1) +
+  scale_fill_manual(values = c("Fatal" = "#8c6bb1", "Serious" = "#66c2a5", "Slight" = "#ffd92f")) +
+  labs(
+    title = "Number of accidents throughout the day",
+    subtitle = "By day of week and severity",
+    x = "Time of day",
+    y = "Density",
+    fill = "Severity"
+  ) +
+  theme_minimal(base_size = 14)
 ```
 
 ## 2 - NYC marathon winners
 
-```{r label-me-2}
+### A.
+
+```{r Load DataSet Q2}
+nyc_marathon <- read_csv("data/nyc_marathon.csv")
+```
+
+```{r Checking DataSet Q2}
+# head(nyc_marathon)
+# summary(nyc_marathon)
+```
+
+```{r part A visualization}
+
+# Remove NA values
+data <- na.omit(nyc_marathon)
+
+# Histogram
+ggplot(data, aes(x = time_hrs)) +
+  geom_histogram(binwidth = 0.1, fill = "skyblue", color = "black") +
+  labs(title = "Histogram of Marathon Times", x = "Time (hours)", y = "Frequency")
+
+# Box plot
+ggplot(data, aes(y = time_hrs)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = "Box Plot of Marathon Times", y = "Time (hours)")
 
 ```
 
+**Histogram insights (not in box plot):**
+
+-   Shows distribution shape (e.g., slight skewness).
+
+-   Can detect multimodality or clusters.
+
+-   Visualizes frequency and spread more granularly.
+
+**Box plot insights (not in histogram):**
+
+-   Summarizes five-number summary (min, Q1, median, Q3, max).
+
+-   Shows outliers more clearly.
+
+-   Easier to compare central tendency and spread at a glance.
+
+### B.
+
+```{r part B visualization}
+ggplot(data, aes(x = division, y = time_hrs, fill = division)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("Men" = "steelblue", "Women" = "coral")) +
+  labs(title = "Marathon Times by Division", x = "Division", y = "Time (hours)") +
+  theme_minimal()
+
+```
+
+**Comparison:**
+
+-   Women generally have longer marathon times than men.
+
+-   Both distributions show similar variability, but the center for women is shifted right.
+
+-   Some women’s results have more outliers, especially earlier years when participation was lower.
+
+### C.
+
+In part **b**, both `x = division` and `fill = division` were used — this is **redundant**, because the x-axis already separates the divisions.
+
+```{r part C visualization}
+ggplot(data, aes(x = division, y = time_hrs)) +
+  geom_boxplot(fill = c("steelblue", "coral")) +
+  labs(title = "Marathon Times by Division", x = "Division", y = "Time (hours)") +
+  theme_minimal()
+
+```
+
+**Effect:**
+
+-   Reduces redundancy in encoding the same info with both x-position and color.
+
+-   Clean visual, higher **data-to-ink ratio** (i.e., less decorative ink for the same amount of information).
+
+### D.
+
+```{r part D visualization}
+ggplot(data, aes(x = year, y = time_hrs, color = division, shape = division)) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("Men" = "steelblue", "Women" = "coral")) +
+  labs(title = "NYC Marathon Times Over Years", x = "Year", y = "Time (hours)") +
+  theme_minimal()
+```
+
+**Insights only visible in this plot:**
+
+-   Clear improvement over time (downward trend in times for both genders).
+
+-   Men and women’s times converged somewhat over decades.
+
+-   Irregularities in early years (especially for women) show inconsistency in participation or race organization.
+
+-   Gaps or spikes might highlight historic events (e.g., no female finisher in 1970, or race disruptions).
+
 ## 3 - US counties
+
+```{r Load DataSet Q3}
+library(usdata)
+```
+
+### A.
+
+```{r part A Query}
+ggplot(county) +
+  geom_point(aes(x = median_edu, y = median_hh_income)) +
+  geom_boxplot(aes(x = smoking_ban, y = pop2017))
+```
+
+#### \*Does it work?\*\*
+
+**No**, this code will **likely produce an error** or unexpected results.
+
+#### \*Why doesn’t it make sense?\*\*
+
+-   The **first layer (`geom_point`)** is fine: it creates a scatterplot of median education (years of schooling) vs median household income. That works.
+
+-   The **second layer (`geom_boxplot`)** is the problem. Boxplots require a **categorical variable on the x-axis** and a **numeric variable on the y-axis**. While `smoking_ban` is categorical (e.g., "Yes", "No", or NA), `pop2017` is numeric and suitable.
+
+    However, the problem is **plotting two incompatible geometries** (scatterplot and boxplot) **on the same plot without separating them**, which can cause:
+
+    -   Misleading or unreadable visuals
+
+    -   Warnings or errors due to mismatch in the `x`/`y` aesthetics between layers
+
+### B.
+
+```{r Part B plot-1}
+# First plot (facets stacked vertically)
+ggplot(county %>% filter(!is.na(median_edu))) +
+  geom_point(aes(x = homeownership, y = poverty)) +
+  facet_grid(median_edu ~ .)
+
+```
+
+```{r Part B plot-2}
+# Second plot (facets side by side)
+ggplot(county %>% filter(!is.na(median_edu))) +
+  geom_point(aes(x = homeownership, y = poverty)) +
+  facet_grid(. ~ median_edu)
+
+```
+
+#### \*Which one is better?\*\*
+
+**The second plot (`facet_grid(. ~ median_edu)`)** is better for comparing **poverty levels across different median education levels**.
+
+#### **Why?**
+
+-   **Comparing across columns** (i.e., horizontal layout) makes it easier for the eye to scan vertically and compare trends in poverty across education levels.
+
+-   If education is the **main grouping variable**, placing it across **columns** makes patterns more obvious.
+
+-   Plotting **education levels side-by-side** allows you to compare similar `homeownership vs poverty` relationships across education levels more naturally.
+
+#### **Takeaway on faceting:**
+
+-   Use `facet_grid(. ~ variable)` (columns) when you want to **compare groups side by side**.
+
+-   Use `facet_grid(variable ~ .)` (rows) when vertical comparison is more appropriate, or you have long text labels that don’t fit well in horizontal space.
+
+### C.
+
+**Plot A** – Basic scatter plot
+
+```{r Part C Plot A}
+ggplot(data = county, aes(x = homeownership, y = poverty)) +
+  geom_point() +
+  ggtitle("Plot A")
+```
+
+**Plot B** – Scatter plot with a smooth (loess) trend line
+
+```{r Part C Plot B}
+ggplot(data = county, aes(x = homeownership, y = poverty)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  ggtitle("Plot B")
+```
+
+**Plot C** – Scatter plot with a loess smoother in green including confidence intervals
+
+```{r Part C Plot C}
+ggplot(data = county, aes(x = homeownership, y = poverty)) +
+  geom_point() +
+  geom_smooth(aes(group = metro), se = FALSE, color = "green") +
+  ggtitle("Plot C")
+
+```
+
+**Plot D** – Scatter plot with smoother and no confidence intervals
+
+```{r Part C Plot D}
+ggplot(data = county, aes(x = homeownership, y = poverty)) +
+  geom_smooth(aes(group = metro), se = FALSE) +
+  geom_point() +
+  ggtitle("Plot D")
+
+```
+
+**Plot E** – Scatter plot colored by `metro`, with separate lines for each metro level using `linetype`
+
+```{r Part C Plot E}
+ggplot(data = county, aes(x = homeownership, y = poverty, color = metro)) +
+  geom_point() +
+  geom_smooth(aes(linetype = metro), se = FALSE, color = "blue") +
+  ggtitle("Plot E")
+
+```
+
+**Plot F** – Scatter plot with colored smoothers for each level of `metro`
+
+```{r Part C Plot F}
+ggplot(data = county, aes(x = homeownership, y = poverty, color = metro)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  ggtitle("Plot F")
+
+```
+
+**Plot G** – Scatter plot with colored points and a single smoother line across all data
+
+```{r Part C Plot G}
+ggplot(data = county, aes(x = homeownership, y = poverty, color = metro)) +
+  geom_point() +
+  geom_smooth(aes(group = 1), se = FALSE, color = "blue") +
+  ggtitle("Plot G")
+
+```
+
+**Plot H** – Colored scatter plot without any smoothers
+
+```{r Part C Plot H}
+ggplot(data = county, aes(x = homeownership, y = poverty, color = metro)) +
+  geom_point() +
+  ggtitle("Plot H")
+
+```
 
 ## 4 - Rental apartments in SF
 
+```{r Load Data Q4}
+credit <- read_csv("data/credit.csv")
+
+head(credit)
+summary(credit)
+```
+
+### A. Relationship between income and credit card balance:
+
+Non-students (blue): Slight positive trend; balance increases from \$0 to \$1,500–\$2,000 as income rises from \$50K to \$150K.
+
+Students (red): Stronger positive trend; balances start higher (\$500–\$1,500 at \$50K) and increase more with income, especially for unmarried students.
+
+Marital status impact: Unmarried students show a steeper balance increase with income; married students have flatter trends.
+
+```{r Part A plot}
+
+# Create the plot
+ggplot(data = credit, aes(x = income, y = balance, color = student, shape = student)) +
+  geom_point(alpha = 0.5) +  # Add transparency to points (faded)
+  geom_smooth(method = "lm", se = FALSE) +  # Add regression line
+  facet_grid(student ~ married, 
+             labeller = labeller(student = c("No" = "Student: No", "Yes" = "Student: Yes"),
+                                 married = c("No" = "Married: No", "Yes" = "Married: Yes"))) +  # Custom facet labels
+  scale_color_manual(values = c("No" = "#1f77b4", "Yes" = "#ff7f0e")) +  # Blue for No, orange for Yes
+  scale_shape_manual(values = c("No" = 16, "Yes" = 17)) +  # 16 = circle, 17 = triangle
+  labs(x = "Income", y = "Credit card balance") +
+  scale_x_continuous(labels = function(x) paste0("$", x, "K"),  # Add $ and K for income
+                     limits = c(0, 150), breaks = seq(0, 150, by = 50)) +
+  scale_y_continuous(labels = function(y) paste0("$", y),  # Add $ for balance
+                     limits = c(0, 2000), breaks = seq(0, 2000, by = 500)) +
+  theme_minimal() +
+  theme(legend.position = "none")  # Remove legend since colors are indicated by facets
+```
+
+### B.
+
+-   **Student Status:** Yes, "student" is likely a useful predictor. Students consistently have higher credit card balances than non-students at the same income level, and their balances increase more rapidly with income. This suggests that being a student influences spending or credit behavior, possibly due to educational expenses or limited income sources leading to reliance on credit.
+-   **Marital Status:** Yes, "married" is also likely a useful predictor, particularly for students. The relationship between income and balance for students differs significantly between married and unmarried individuals. Unmarried students show a steeper increase in balance with income, while married students have a more stable balance across income levels. For non-students, the effect of marital status is less pronounced, but there are still slight differences in the spread of balances.
+
+### C.
+
+Credit utilization = balance/limit. The plot shows utilization vs. income, split by married/student status.
+
+```{r Part C plot}
+
+
+# Calculate credit utilization
+credit <- credit %>%
+  mutate(credit_utilization = balance / limit)
+
+# Create subsets for each combination
+ggplot(credit, aes(x = income, y = credit_utilization * 100)) +
+  geom_point(aes(color = student, shape = student), alpha = 0.5) +
+  geom_smooth(
+    aes(group = interaction(student, married), color = student),
+    method = "lm", se = FALSE
+  ) +
+  facet_grid(student ~ married,
+             labeller = labeller(
+               student = c("No" = "Student: No", "Yes" = "Student: Yes"),
+               married = c("No" = "Married: No", "Yes" = "Married: Yes")
+             )) +
+  scale_color_manual(values = c("No" = "#1f77b4", "Yes" = "#ff7f0e")) +
+  labs(x = "Income", y = "Credit utilization") +
+  scale_x_continuous(
+    labels = function(x) paste0("$", x, "K"),
+    breaks = seq(0, 150, by = 50)
+  ) +
+  scale_y_continuous(
+    labels = scales::percent_format(scale = 1),
+    breaks = seq(0, 25, by = 10)
+  ) +
+  coord_cartesian(xlim = c(0, 150), ylim = c(0, 25)) +
+  theme_minimal() +
+  theme(legend.position = "right", legend.title = element_blank())
+
+
+
+```
+
+### **D. Differences in relationships (credit utilization vs. credit balance):**
+
+-   **Credit Balance:** Positive trend with income; steeper for students, especially unmarried ones.
+
+-   **Credit Utilization:** Negative or flat trend with income. Non-students’ utilization slightly increases (0% to 10%); students’ utilization decreases (20% to 10%), with little difference by marital status.
+
+-   **Key Difference:** Utilization decreases or stays stable with income, while balance increases, suggesting higher incomes lead to higher limits, reducing utilization. Student status still matters, but marital status has less impact on utilization trends.
+
 ## 5 - Napoleon’s march.
+
+## Introduction
+
+Charles Joseph Minard’s famous 1869 flow map depicts Napoleon’s disastrous Russian campaign of 1812. This iconic graphic communicates multivariate data with impressive clarity—showing geography, temperature, troop size, and direction—all on one chart. In this exercise, I will recreate this visualization using `ggplot2` in R. The data is structured into three data frames: `troops`, `cities`, and `temperatures`, available in the `napoleon.rds` file.
+
+## Resources Used
+
+1.  **Andrew Heiss’s blog post**\
+    URL: [Exploring Minard’s 1812 plot with ggplot2](https://www.andrewheiss.com/blog/2017/08/10/exploring-minards-1812-plot-with-ggplot2/)\
+    *Usage*: Used as the primary reference for understanding how to work with Minard’s structured dataset and layer paths, points, and text annotations in `ggplot2`.
+
+2.  **Hadley Wickham’s paper on the layered grammar of graphics**\
+    URL: [Layered Grammar of Graphics (PDF)](http://vita.had.co.nz/papers/layered-grammar.pdf)\
+    *Usage*: Provided conceptual foundation for thinking in terms of layered components of `ggplot2`—how we add geoms, mappings, and data transformations step by step.
+
+## Code: Recreating the March with a Personal Touch
+
+```{r Napoleon’s march plot}
+
+# Load required libraries
+library(ggplot2)
+library(ggrepel)
+library(dplyr)
+library(grid)
+library(readr)
+library(scales)  # For comma_format()
+
+# Load the napoleon.rds file (adjust path as needed)
+napoleon <- read_rds("data/napoleon.rds")
+
+# Unpack the dataset into separate data frames for clarity
+troops <- napoleon$troops       # Troop movement data (long, lat, survivors, direction, group)
+cities <- napoleon$cities       # City locations (long, lat, city)
+temps <- napoleon$temperatures  # Temperature data (long, temp, month, day)
+
+# Create a data frame for key historical events to annotate on the plot
+# Placeholder coordinates for significant events; adjust if precise locations are known
+events <- data.frame(
+  long = c(37.5, 32.0),  # Longitude for Battle of Borodino and Crossing of Berezina
+  lat = c(55.5, 54.0),   # Latitude for these events
+  event_name = c("Battle of Borodino", "Crossing of Berezina")  # Event names to display
+)
+
+# Prepare data for survivor labels by selecting key points
+# Match troop points to cities and include start/end points of each group
+label_points <- troops %>%
+  # Group by army corps (group) and direction (advance/retreat) to process each segment
+  group_by(group, direction) %>%
+  # Join with cities to find troop points matching city coordinates
+  inner_join(cities, by = c("long", "lat"), suffix = c(".troops", ".cities")) %>%
+  # Keep only necessary columns for labeling
+  select(long, lat, survivors, direction, group, city) %>%
+  ungroup() %>%
+  # Add start and end points of each group/direction to capture initial and final survivor counts
+  bind_rows(
+    troops %>%
+      group_by(direction, group) %>%
+      slice(c(1, n())) %>%  # Select first and last points of each group
+      ungroup() %>%
+      distinct(long, lat, .keep_all = TRUE) %>%  # Remove duplicate coordinates
+      select(long, lat, survivors, direction, group)
+  ) %>%
+  # Remove any duplicate points to avoid redundant labels
+  distinct(long, lat, survivors, direction, group, .keep_all = TRUE)
+
+# Create the main troop movement plot to visualize Napoleon's march
+march.1812.plot.simple <- ggplot() +
+  # Plot troop paths, with color indicating direction and linewidth showing survivor numbers
+  geom_path(data = troops, aes(x = long, y = lat, group = group,
+                               color = direction, linewidth = survivors),
+            lineend = "round") +  # Use rounded line ends for smoother appearance
+  # Add survivor labels at city points and start/end, in dark blue for visibility
+  geom_text_repel(data = label_points, 
+                  aes(x = long, y = lat, label = scales::comma(survivors)),
+                  color = "#00008B", size = 2, family = "sans",
+                  segment.color = "grey50", segment.size = 0.2,
+                  nudge_y = 0.15, direction = "y",  # Nudge upward to avoid city labels
+                  max.overlaps = 30, force = 2) +  # Increase repulsion to reduce overlap
+  # Plot city points as red markers
+  geom_point(data = cities, aes(x = long, y = lat),
+             color = "#DC5B44") +
+  # Add city name labels, nudged downward to separate from survivor labels
+  geom_text_repel(data = cities, aes(x = long, y = lat, label = city),
+                  color = "#DC5B44", size = 2, family = "sans",
+                  nudge_y = -0.15, direction = "y",  # Nudge downward for clarity
+                  max.overlaps = 30, force = 2) +
+  # Annotate key historical events in bold dark red, positioned above other labels
+  geom_text(data = events, aes(x = long, y = lat, label = event_name),
+            nudge_y = 0.3, color = "darkred", size = 2, fontface = "bold") +
+  # Set linewidth scale for survivors without a legend to keep plot clean
+  scale_linewidth_continuous(range = c(0.5, 10), guide = "none") +
+  # Add direction legend with gold for advance and black for retreat
+  scale_color_manual(name = "Direction", values = c("#FFD700", "#000000"), 
+                     labels = c("Advance", "Retreat")) +
+  # Use minimal theme and place legend at bottom for accessibility
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Prepare temperature data with formatted labels for the temperature plot
+temps.nice <- temps %>%
+  mutate(nice.label = paste0(temp, "°, ", month, ". ", day))  # Combine temp, month, day into a single label
+
+# Create the temperature plot to show conditions during the retreat
+temps.1812.plot <- ggplot(data = temps.nice, aes(x = long, y = temp)) +
+  # Add a dashed red line at 0°C to highlight freezing conditions
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  # Plot temperature as a line over longitude
+  geom_line() +
+  # Add labels for temperature points with date information
+  geom_label(aes(label = nice.label),
+             family = "sans", size = 1.5) +  # Smaller size for less clutter
+  # Set axis labels and scales, aligning x-axis with main plot
+  labs(x = NULL, y = "° Celsius") +
+  scale_x_continuous(limits = ggplot_build(march.1812.plot.simple)$layout$panel_ranges[[1]]$x.range) +
+  scale_y_continuous(position = "right") +  # Place y-axis on right for clarity
+  coord_cartesian(ylim = c(-35, 5)) +  # Set y-axis limits with padding
+  # Use clean theme, removing unnecessary grid lines and x-axis elements
+  theme_bw(base_family = "sans") +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.text.x = element_blank(), 
+        axis.ticks = element_blank(),
+        panel.border = element_blank())
+
+# Combine the troop movement and temperature plots vertically
+both.1812.plot.simple <- rbind(ggplotGrob(march.1812.plot.simple),
+                               ggplotGrob(temps.1812.plot))
+
+# Adjust panel heights to a 3:1 ratio for a wider appearance
+panels <- both.1812.plot.simple$layout$t[grep("panel", both.1812.plot.simple$layout$name)]
+both.1812.plot.simple$heights[panels] <- unit(c(3, 1), "null")
+
+# Render the combined plot interactively
+grid::grid.newpage()
+grid::grid.draw(both.1812.plot.simple)
+
+
+```
+
+### Code Explanation:
+
+This R script generates a two-part visualization of Napoleon’s 1812 winter retreat from Moscow, inspired by Charles Minard’s iconic graphic. The code processes data, creates a troop movement plot and a temperature plot, and combines them to depict the army’s journey, survivor losses, and environmental conditions.
+
+The script loads data from `napoleon.rds`, processes it to extract key points, and uses `ggplot2` to create: - A **troop movement plot** showing paths with survivor counts, city locations, and historical event annotations. - A **temperature plot** showing temperature changes aligned with the troop paths. - A **combined visualization** stacking both plots vertically with a wider layout.
+
+#### Visualization Approach
+
+1.  **Data Loading and Preparation**:
+    -   Loads `napoleon.rds` and unpacks it into `troops` (path data with longitude, latitude, survivors, direction, group), `cities` (city locations), and `temperatures` (temperature data with dates).
+    -   Creates an `events` data frame for annotating historical events (Battle of Borodino, Crossing of Berezina) using placeholder coordinates.
+    -   Prepares survivor labels by matching `troops` coordinates to `cities` and including start/end points of each group/direction using `dplyr`. Duplicates are removed to ensure unique labels. The `scales` package formats survivor counts in normal notation (e.g., 422,000).
+2.  **Troop Movement Plot**:
+    -   Uses `ggplot2` to plot troop paths with `geom_path`, coloring advance (gold, `#FFD700`) and retreat (black, `#000000`), with linewidths scaled to survivor numbers (0.5–10 range).
+    -   Adds survivor labels in dark blue (`#00008B`) at city matches and start/end points using `geom_text_repel` with `scales::comma` for clarity. Labels are nudged upward (`nudge_y = 0.15`) to avoid overlap.
+    -   Marks cities with red (`#DC5B44`) points and labels, nudged downward (`nudge_y = -0.15`) for separation. Event annotations in bold dark red are placed higher (`nudge_y = 0.3`).
+    -   Includes a direction legend at the bottom, suppresses the survivors legend, and uses `theme_minimal` for a clean look.
+3.  **Temperature Plot**:
+    -   Plots temperature over longitude with `geom_line`, adding a dashed red 0°C line (`geom_hline`) to highlight freezing conditions.
+    -   Labels temperature points with date and temperature (e.g., -30°, Oct. 25) using `geom_label` with a smaller size (1.5) for clarity.
+    -   Aligns the x-axis with the troop plot and sets the y-axis (right side) from -35°C to 5°C. Uses `theme_bw` with minimal grid lines for a clean appearance.
+4.  **Combining and Rendering**:
+    -   Combines plots vertically using `rbind` and `ggplotGrob`, setting a 3:1 height ratio (`unit(c(3, 1), "null")`) for a wider troop plot.
+    -   Renders the combined plot interactively with `grid::grid.draw` for display in R environments like RStudio.
+
+#### Result
+
+The code produces a visualization showing Napoleon’s army shrinking along its path, with survivor counts labeled at key cities (e.g., Moscow, Smolensk) and endpoints, city names, and event annotations for context. The temperature plot below links harsh conditions to troop losses, creating a clear, informative graphic of the campaign’s toll.
+
+#### What Have I add different from the article:
+
+-   **Added Survivor Labels on the Plot**:
+
+    -   **Change**: Introduced a `label_points` data frame to select survivor counts at city matches and start/end points of each group/direction, using `geom_text_repel` with `scales::comma(survivors)` to display numbers in normal notation (e.g., 422,000) in dark blue (#00008B).
+
+    -   **Reason**: To show survivor numbers directly on the plot, addressing your request to display more data from the `troops` dataset and make the human cost of the campaign explicit. Dark blue was chosen for visibility, and `geom_text_repel` with `nudge_y = 0.15` prevents overlap with other elements.
+
+-   **Added Event Annotations**:
+
+    -   **Change**: Created an `events` data frame with placeholder coordinates for historical events (Battle of Borodino, Crossing of Berezina) and added `geom_text` to annotate these in dark red.
+
+    -   **Reason**: Enhances historical context by marking significant events, making the plot more informative about key moments in Napoleon’s campaign.
+
+-   **Added 0°C Reference Line in Temperature Plot**:
+
+    -   **Change**: Added `geom_hline(yintercept = 0, linetype = "dashed", color = "red")` to the temperature plot.
+
+    -   **Reason**: Highlights freezing conditions that impacted the army, visually linking environmental factors to troop losses for a clearer narrative.
+
+-   **Modified City and Survivor Label Positioning**:
+
+    -   **Change**: Adjusted `geom_text_repel` for city labels with `nudge_y = -0.15` to push them downward and for survivor labels with `nudge_y = 0.15` to push them upward, both with `max.overlaps = 30` and `force = 2`. Reduced label sizes (`size = 2` for survivor/city, 1.5 for temperature).
+
+    -   **Reason**: Prevents overlap between city names and survivor numbers, improving readability. Smaller label sizes reduce visual clutter while maintaining clarity.
+
+-   **Changed Color Scheme for Direction**:
+
+    -   **Change**: Updated `scale_colour_manual` values from c("#DFC17E", "#252523") to c("#FFD700", "#000000") (gold and black) and added a direction legend with `name = "Direction"` and `labels = c("Advance", "Retreat")`.
+
+    -   **Reason**: Gold and black provide higher contrast for advance and retreat paths, improving visual distinction. The legend clarifies direction, replacing the suppressed `guides(color = "none")`.
+
+-   **Replaced scale_size with scale_linewidth_continuous**:
+
+    -   **Change**: Changed `scale_size(range = c(0.5, 10))` to `scale_linewidth_continuous(range = c(0.5, 10), guide = "none")`.
+
+    -   **Reason**: **scale_linewidth_continuous** is the correct function for **linewidth** aesthetic in newer ggplot2 versions, ensuring proper scaling of troop path widths without a legend.
+
+-   **Changed Theme for Main Plot**:
+
+    -   **Change**: Replaced `theme_nothing()` with `theme_minimal()` and added `theme(legend.position = "bottom")`.
+
+    -   **Reason**: `theme_minimal()` provides a cleaner background with axes for context, while `theme_nothing()` was overly sparse. The bottom legend position keeps the plot uncluttered.
+
+-   **Reduced Label Sizes**:
+
+    -   **Change**: Set `size = 2` for survivor and city labels (from 3) and `size = 1.5` for temperature labels (from 2.5).
+
+    -   **Reason**: Smaller sizes reduce visual clutter, especially with more labels added, while maintaining readability.
